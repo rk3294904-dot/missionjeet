@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Base44 Project
 
 Use this repository to run and edit the app locally, then publish changes back through Base44.
@@ -60,3 +61,29 @@ GitHub integration: [https://docs.base44.com/developers/app-code/local-developme
 Local development: [https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview)
 
 Support: [https://app.base44.com/support](https://app.base44.com/support)
+=======
+# Pixel Perfect Web
+
+Iss code ka use krke Bilkul yhi web bnnakr do aur koi bhi error na ho sab fix Krdena
+
+This project was built with [Lovable](https://lovable.dev).
+
+## Build with Lovable
+
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/edd5c64f-96b4-4beb-9fee-2fdfcacde397).
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+
+## Development
+
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+
+```sh
+git clone <this-repository-url>
+cd <repository-name>
+npm i
+npm run dev
+```
+>>>>>>> f4b3bfbbd83bde1aa509639b14f0185ef7ae57f9

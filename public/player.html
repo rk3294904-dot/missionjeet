@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>𝐄ᴅᴜ-𝐋ᴇᴀᴋ - Player</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a25;--surface3:#222233;--accent:#6c5ce7;--accent-light:#8b7cf7;--accent-dark:#5a4bd6;--text:#e8e8f0;--text-dim:#8888a0;--text-muted:#555570;--border:#2a2a3a;--success:#00c853;--danger:#ff4444;--warning:#ffaa00;--radius:12px;--radius-sm:8px;--shadow:0 4px 24px rgba(0,0,0,0.5)}
+        html,body{height:100%;overflow:hidden}
+        body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;display:flex;flex-direction:column}
+        .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:16px;flex-shrink:0;z-index:100}
+        .topbar-logo{height:32px;width:auto;border-radius:6px;margin-right:auto}
+        .topbar-logo img{height:100%;width:auto;border-radius:6px;display:block}
+        .back-btn{display:flex;align-items:center;gap:8px;background:none;border:1px solid var(--border);color:var(--text-dim);padding:8px 16px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;transition:all .2s;text-decoration:none;white-space:nowrap}
+        .back-btn:hover{border-color:var(--accent);color:var(--accent-light);background:rgba(108,92,231,0.1)}
+        .back-btn svg{width:16px;height:16px;fill:currentColor}
+        .video-title{flex:1;font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .player-wrap{flex:1;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;position:relative;min-height:0}
+        .player-wrap video{width:100%;height:100%;object-fit:contain}
+        #player{width:100%;height:100%;max-width:100%;max-height:100%}
+        .loading-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,15,0.92);z-index:50;transition:opacity .3s}
+        .loading-overlay.hidden{opacity:0;pointer-events:none}
+        .loader{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+        .loader-text{margin-top:16px;font-size:14px;color:var(--text-dim)}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .error-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,15,0.95);z-index:50;gap:16px}
+        .error-overlay.hidden{display:none}
+        .error-icon{width:64px;height:64px;color:var(--danger)}
+        .error-msg{font-size:16px;color:var(--text);text-align:center;max-width:400px;padding:0 20px}
+        .retry-btn{margin-top:8px;padding:10px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+        .retry-btn:hover{background:var(--accent-light)}
+        .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+        .modal-backdrop.active{opacity:1;pointer-events:auto}
+        .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:480px;width:calc(100% - 40px);box-shadow:var(--shadow);transform:translateY(16px);transition:transform .25s}
+        .modal-backdrop.active .modal{transform:translateY(0)}
+        .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+        .modal-header h3{font-size:18px;font-weight:700;color:var(--text)}
+        .modal-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-dim);cursor:pointer;transition:all .2s;font-size:18px}
+        .modal-close:hover{background:var(--surface3);color:var(--text)}
+        .quality-grid{display:grid;gap:10px}
+        .quality-card{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .2s}
+        .quality-card:hover{border-color:var(--accent);background:rgba(108,92,231,0.08)}
+        .quality-card.active{border-color:var(--accent);background:rgba(108,92,231,0.15)}
+        .quality-card .q-label{font-size:15px;font-weight:600;color:var(--text)}
+        .quality-card .q-badge{font-size:12px;padding:4px 10px;background:var(--accent-dark);color:#fff;border-radius:20px;font-weight:600}
+        .quality-card .q-info{display:flex;align-items:center;gap:10px}
+        .quality-card .q-detail{font-size:12px;color:var(--text-dim)}
+        .quality-card.active .q-badge{background:var(--accent)}
+        .progress-wrap{margin-top:16px}
+        .progress-wrap .label{font-size:13px;color:var(--text-dim);margin-bottom:8px}
+        .progress-track{width:100%;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+        .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-light));border-radius:3px;transition:width .3s;width:0%}
+        .progress-stats{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text-muted)}
+        .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:12px 24px;border-radius:var(--radius-sm);font-size:14px;z-index:2000;transition:transform .3s ease;box-shadow:var(--shadow);pointer-events:none;white-space:nowrap}
+        .toast.show{transform:translateX(-50%) translateY(0)}
+        .toast.success{border-color:var(--success);color:var(--success)}
+        .toast.error{border-color:var(--danger);color:var(--danger)}
+        .auto-quality-badge{position:absolute;top:16px;right:16px;background:var(--accent);color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;z-index:40;pointer-events:none;opacity:0;transition:opacity .3s}
+        .auto-quality-badge.show{opacity:1}
+        @media(max-width:768px){
+            .topbar{padding:10px 12px;gap:10px}
+            .back-btn{padding:6px 10px;font-size:13px}
+            .back-btn span{display:none}
+            .video-title{font-size:14px}
+            .modal{padding:18px;max-width:100%}
+        }
+        @media(max-width:480px){
+            .back-btn svg{width:14px;height:14px}
+            .back-btn{padding:6px 8px}
+        }
+        .plyr{--plyr-color-main:var(--accent);--plyr-video-background:transparent}
+        .plyr__controls{background:linear-gradient(transparent,rgba(0,0,0,0.85))!important}
+        .plyr__control--overlaid{background:rgba(108,92,231,0.85)!important}
+        .plyr__control--overlaid:hover{background:var(--accent)!important}
+        .plyr__menu__container{background:var(--surface)!important;border:1px solid var(--border)!important;border-radius:var(--radius-sm)!important}
+        .plyr__menu__container li{color:var(--text)!important}
+        .plyr__menu__container li:hover{background:var(--surface2)!important}
+        .plyr__menu__container li[data-value].plyr__control--active{color:var(--accent-light)!important}
+        .plyr__settings{background:var(--surface)!important;border:1px solid var(--border)!important;border-radius:var(--radius-sm)!important}
+        .plyr__settings label{color:var(--text)!important}
+        .plyr__settings input[type=radio]{accent-color:var(--accent)!important}
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <a href="#" class="back-btn" id="backBtn">
+            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            <span>Back</span>
+        </a>
+        <div class="video-title" id="videoTitle">Loading...</div>
+        <div class="topbar-logo"><img src="eduleak-logo.jpg" alt="𝐄ᴅᴜ-𝐋ᴇᴀᴋ"></div>
+    </div>
+
+    <div class="player-wrap">
+        <div class="auto-quality-badge" id="qualityBadge">AUTO</div>
+        <video id="player" playsinline></video>
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loader"></div>
+            <div class="loader-text" id="loadingText">Initializing player...</div>
+        </div>
+        <div class="error-overlay hidden" id="errorOverlay">
+            <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <div class="error-msg" id="errorMsg">Something went wrong</div>
+            <button class="retry-btn" onclick="initPlayer()">Try Again</button>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="qualityModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Select Quality</h3>
+                <button class="modal-close" onclick="closeQualityModal()">&times;</button>
+            </div>
+            <div class="quality-grid" id="qualityGrid"></div>
+            <div class="progress-wrap" id="progressWrap" style="display:none">
+                <div class="label" id="progressLabel">Downloading...</div>
+                <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+                <div class="progress-stats">
+                    <span id="progressPercent">0%</span>
+                    <span id="progressSpeed">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="config.js"></script>
+    <script>
+    (function(){
+        'use strict';
+        const params=new URLSearchParams(window.location.search);
+        const videoUrl=params.get('url');
+        const videoTitle=decodeURIComponent(params.get('title')||'Untitled Video');
+        const courseUrl=params.get('course')||'/';
+        let hlsInstance=null;
+        let plyrInstance=null;
+        let qualities=[];
+        let currentQuality=-1;
+        let isHls=false;
+        let positionKey='';
+
+        document.getElementById('videoTitle').textContent=videoTitle;
+        document.getElementById('backBtn').href=courseUrl;
+        document.title=videoTitle+' - 𝐄ᴅᴜ-𝐋ᴇᴀᴋ';
+
+        window.API_BASE=window.API_BASE||'';
+        window.VIDEO_API=window.VIDEO_API||'';
+
+        function showToast(msg,type){
+            const t=document.getElementById('toast');
+            t.textContent=msg;
+            t.className='toast '+type+' show';
+            setTimeout(()=>t.classList.remove('show'),3000);
+        }
+
+        function setLoading(on,text){
+            const o=document.getElementById('loadingOverlay');
+            if(text)document.getElementById('loadingText').textContent=text;
+            o.classList.toggle('hidden',!on);
+        }
+
+        function showError(msg){
+            setLoading(false);
+            document.getElementById('errorMsg').textContent=msg;
+            document.getElementById('errorOverlay').classList.remove('hidden');
+        }
+
+        function hideError(){
+            document.getElementById('errorOverlay').classList.add('hidden');
+        }
+
+        function formatSize(b){
+            if(b>=1073741824)return(b/1073741824).toFixed(1)+' GB';
+            if(b>=1048576)return(b/1048576).toFixed(1)+' MB';
+            if(b>=1024)return(b/1024).toFixed(1)+' KB';
+            return b+' B';
+        }
+
+        function parseM3u8(text,base){
+            const lines=text.split('\n').map(l=>l.trim());
+            const playlists=[];
+            let idx=0;
+            for(let i=0;i<lines.length;i++){
+                if(lines[i].startsWith('#EXT-X-STREAM-INF:')){
+                    const tag=lines[i];
+                    const uri=lines[i+1];
+                    if(!uri||uri.startsWith('#'))continue;
+                    const bwMatch=tag.match(/BANDWIDTH=(\d+)/);
+                    const resMatch=tag.match(/RESOLUTION=(\d+\d+x\d+)/);
+                    const bw=bwMatch?parseInt(bwMatch[1]):0;
+                    const res=resMatch?resMatch[1]:'Unknown';
+                    let fullUrl=uri;
+                    if(!uri.startsWith('http')){
+                        const baseClean=base.substring(0,base.lastIndexOf('/')+1);
+                        fullUrl=baseClean+uri;
+                    }
+                    playlists.push({bandwidth:bw,resolution:res,url:fullUrl,index:idx++});
+                }
+            }
+            playlists.sort((a,b)=>b.bandwidth-a.bandwidth);
+            return playlists;
+        }
+
+        function initPlyr(){
+            if(plyrInstance){
+                plyrInstance.destroy();
+                plyrInstance=null;
+            }
+            const v=document.getElementById('player');
+            plyrInstance=new Plyr(v,{
+                controls:['play-large','rewind','play','fast-forward','progress','current-time','duration','mute','volume','download','settings','fullscreen'],
+                speed:{selected:1,options:[0.5,0.75,1,1.25,1.5,2]},
+                settings:['speed','quality'],
+                tooltips:{controls:true,seek:true},
+                keyboard:{focused:true,global:false},
+                invertTime:false,
+                displayDuration:true,
+                autoplay:false,
+                muted:false,
+                volume:0.8,
+                hideControls:true,
+                resetOnEnd:false
+            });
+            plyrInstance.on('qualitychange',function(e){
+                if(e.detail&&e.detail.quality!==undefined&&isHls){
+                    switchQuality(parseInt(e.detail.quality));
+                }
+            });
+            plyrInstance.on('ready',function(){
+                setLoading(false);
+                restorePosition();
+            });
+            plyrInstance.on('ended',function(){
+                removePosition();
+            });
+        }
+
+        function switchQuality(idx){
+            if(!hlsInstance||idx<0||idx>=qualities.length)return;
+            currentQuality=idx;
+            hlsInstance.currentLevel=idx;
+            document.querySelectorAll('.quality-card').forEach((c,i)=>{
+                c.classList.toggle('active',i===idx);
+            });
+            showToast('Switched to '+qualities[idx].resolution,'success');
+        }
+
+        function restorePosition(){
+            if(positionKey&&plyrInstance){
+                const saved=localStorage.getItem(positionKey);
+                if(saved){
+                    const t=parseFloat(saved);
+                    if(t>2){
+                        plyrInstance.currentTime=t;
+                        showToast('Resumed from '+formatTime(t),'success');
+                    }
+                }
+            }
+        }
+
+        function savePosition(){
+            if(positionKey&&plyrInstance){
+                localStorage.setItem(positionKey,plyrInstance.currentTime.toString());
+            }
+        }
+
+        function removePosition(){
+            if(positionKey)localStorage.removeItem(positionKey);
+        }
+
+        function formatTime(s){
+            const h=Math.floor(s/3600);
+            const m=Math.floor((s%3600)/60);
+            const sec=Math.floor(s%60);
+            if(h>0)return h+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+            return m+':'+String(sec).padStart(2,'0');
+        }
+
+        async function loadHlsStream(url){
+            setLoading(true,'Loading streams...');
+            try{
+                const masterResp=await fetch(url);
+                if(!masterResp.ok)throw new Error('Failed to fetch playlist');
+                const masterText=await masterResp.text();
+                qualities=parseM3u8(masterText,url);
+                if(qualities.length===0)throw new Error('No quality variants found');
+                positionKey='pos_'+hashCode(videoUrl||url);
+                initPlyr();
+                const video=document.getElementById('player');
+                hlsInstance=new Hls({
+                    maxBufferLength:30,
+                    maxMaxBufferLength:60,
+                    startFragPrefetch:true,
+                    startLevel:-1,
+                    capLevelToPlayerSize:true,
+                    debug:false,
+                    enableWorker:true,
+                    lowLatencyMode:false
+                });
+                hlsInstance.loadSource(url);
+                hlsInstance.attachMedia(video);
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED,function(e,data){
+                    const preferredIdx=findPreferredQuality();
+                    hlsInstance.currentLevel=preferredIdx;
+                    currentQuality=preferredIdx;
+                    document.getElementById('qualityBadge').textContent=qualities[preferredIdx].resolution;
+                    document.getElementById('qualityBadge').classList.add('show');
+                    showToast('Playing '+qualities[preferredIdx].resolution,'success');
+                    setupQualityMenu();
+                    setupDownloadBtn();
+                });
+                hlsInstance.on(Hls.Events.ERROR,function(e,data){
+                    if(data.fatal){
+                        switch(data.type){
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                hlsInstance.startLoad();
+                                showToast('Network error, recovering...','error');
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hlsInstance.recoverMediaError();
+                                showToast('Media error, recovering...','error');
+                                break;
+                            default:
+                                showError('Playback error: '+data.details);
+                                break;
+                        }
+                    }else{
+                        console.warn('HLS non-fatal:',data.details);
+                    }
+                });
+                let saveInterval=setInterval(savePosition,3000);
+                window.addEventListener('beforeunload',function(){
+                    savePosition();
+                    clearInterval(saveInterval);
+                });
+            }catch(err){
+                showError('Failed to load HLS stream: '+err.message);
+            }
+        }
+
+        function findPreferredQuality(){
+            if(qualities.length===0)return 0;
+            const target720=qualities.findIndex(q=>q.resolution.includes('720'));
+            if(target720>=0)return target720;
+            const target480=qualities.findIndex(q=>q.resolution.includes('480'));
+            if(target480>=0)return target480;
+            return Math.min(qualities.length-1,1);
+        }
+
+        function hashCode(s){
+            let h=0;
+            for(let i=0;i<s.length;i++){
+                h=((h<<5)-h)+s.charCodeAt(i);
+                h|=0;
+            }
+            return Math.abs(h).toString(36);
+        }
+
+        async function loadDirectVideo(url){
+            setLoading(true,'Loading video...');
+            positionKey='pos_'+hashCode(videoUrl||url);
+            initPlyr();
+            const video=document.getElementById('player');
+            const proxyUrl=window.VIDEO_API+'?url='+encodeURIComponent(url);
+            video.src=proxyUrl;
+            video.load();
+            video.addEventListener('loadedmetadata',function(){
+                setLoading(false);
+                restorePosition();
+                showToast('Video loaded','success');
+            },{once:true});
+            video.addEventListener('error',function(){
+                showError('Failed to load video');
+            },{once:true});
+            let saveInterval=setInterval(savePosition,3000);
+            window.addEventListener('beforeunload',function(){
+                savePosition();
+                clearInterval(saveInterval);
+            });
+        }
+
+        function setupQualityMenu(){
+            if(!hlsInstance||qualities.length<=1)return;
+            const menu=plyrInstance.getMenu();
+            if(!menu)return;
+            let qualSection=menu.querySelector('[data-type="quality"]');
+            if(!qualSection){
+                const items=menu.querySelectorAll('li');
+                items.forEach(li=>li.remove());
+                const header=document.createElement('li');
+                header.textContent='Quality';
+                header.style.cssText='color:var(--text-dim);font-size:11px;text-transform:uppercase;padding:6px 12px;font-weight:700';
+                menu.appendChild(header);
+                qualities.forEach((q,i)=>{
+                    const li=document.createElement('li');
+                    li.setAttribute('data-value',i.toString());
+                    li.className='plyr__control';
+                    li.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:8px 12px';
+                    const label=document.createElement('span');
+                    label.textContent=q.resolution+' ('+Math.round(q.bandwidth/1000)+'kbps)';
+                    label.style.cssText='font-size:13px;color:var(--text)';
+                    li.appendChild(label);
+                    if(i===currentQuality){
+                        const check=document.createElement('span');
+                        check.textContent='✓';
+                        check.style.cssText='color:var(--accent-light);font-weight:700;margin-left:8px';
+                        li.appendChild(check);
+                    }
+                    li.addEventListener('click',function(e){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        switchQuality(i);
+                        updateMenuChecks(menu,i);
+                    });
+                    menu.appendChild(li);
+                });
+            }
+        }
+
+        function updateMenuChecks(menu,idx){
+            menu.querySelectorAll('li[data-value]').forEach(li=>{
+                const val=parseInt(li.getAttribute('data-value'));
+                const existing=li.querySelector('.menu-check');
+                if(existing)existing.remove();
+                if(val===idx){
+                    const check=document.createElement('span');
+                    check.className='menu-check';
+                    check.textContent='✓';
+                    check.style.cssText='color:var(--accent-light);font-weight:700;margin-left:auto';
+                    li.appendChild(check);
+                }
+            });
+        }
+
+        function setupDownloadBtn(){
+            if(!isHls||qualities.length===0)return;
+            const btn=document.querySelector('[data-plyr="download"]')||document.querySelector('.plyr__download');
+            if(btn){
+                btn.addEventListener('click',function(e){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openQualityModal(true);
+                });
+            }else{
+                const controls=document.querySelector('.plyr__controls');
+                if(controls){
+                    const dlBtn=document.createElement('button');
+                    dlBtn.className='plyr__control';
+                    dlBtn.type='button';
+                    dlBtn.setAttribute('data-plyr','download');
+                    dlBtn.setAttribute('aria-label','Download');
+                    dlBtn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>';
+                    dlBtn.title='Download';
+                    dlBtn.addEventListener('click',function(e){
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openQualityModal(true);
+                    });
+                    const fullscreen=controls.querySelector('[data-plyr="fullscreen"]');
+                    if(fullscreen)controls.insertBefore(dlBtn,fullscreen);
+                    else controls.appendChild(dlBtn);
+                }
+            }
+        }
+
+        function openQualityModal(downloadMode){
+            const grid=document.getElementById('qualityGrid');
+            const progressWrap=document.getElementById('progressWrap');
+            progressWrap.style.display='none';
+            grid.innerHTML='';
+            qualities.forEach(function(q,i){
+                const card=document.createElement('div');
+                card.className='quality-card'+(i===currentQuality?' active':'');
+                card.innerHTML='<div class="q-info"><div class="q-label">'+q.resolution+'</div><div class="q-detail">'+formatMbps(q.bandwidth)+'</div></div>'+(downloadMode?'<div class="q-badge">Download</div>':(i===currentQuality?'<div class="q-badge">Playing</div>':''));
+                card.addEventListener('click',function(){
+                    if(downloadMode){
+                        startDownload(q);
+                    }else{
+                        switchQuality(i);
+                        closeQualityModal();
+                    }
+                });
+                grid.appendChild(card);
+            });
+            document.getElementById('qualityModal').classList.add('active');
+        }
+
+        function closeQualityModal(){
+            document.getElementById('qualityModal').classList.remove('active');
+        }
+
+        function formatMbps(bw){
+            return Math.round(bw/1000)+' kbps';
+        }
+
+        async function startDownload(quality){
+            const progressWrap=document.getElementById('progressWrap');
+            const progressFill=document.getElementById('progressFill');
+            const progressPercent=document.getElementById('progressPercent');
+            const progressSpeed=document.getElementById('progressSpeed');
+            const progressLabel=document.getElementById('progressLabel');
+            const grid=document.getElementById('qualityGrid');
+            progressWrap.style.display='block';
+            grid.style.opacity='0.4';
+            grid.style.pointerEvents='none';
+            try{
+                progressLabel.textContent='Fetching playlist...';
+                progressFill.style.width='2%';
+                progressPercent.textContent='2%';
+                const resp=await fetch(quality.url);
+                if(!resp.ok)throw new Error('Failed to fetch quality playlist');
+                const m3u8=await resp.text();
+                const segments=parseSegments(m3u8,quality.url);
+                if(segments.length===0)throw new Error('No segments found');
+                progressLabel.textContent='Downloading 0/'+segments.length+' segments...';
+                progressFill.style.width='5%';
+                progressPercent.textContent='5%';
+                const chunks=[];
+                let totalBytes=0;
+                const startTime=Date.now();
+                for(let i=0;i<segments.length;i++){
+                    try{
+                        const segResp=await fetch(segments[i]);
+                        if(!segResp.ok)throw new Error('Segment fetch failed');
+                        const buf=await segResp.arrayBuffer();
+                        chunks.push(new Uint8Array(buf));
+                        totalBytes+=buf.byteLength;
+                        const pct=Math.round(5+((i+1)/segments.length)*90);
+                        const elapsed=(Date.now()-startTime)/1000;
+                        const speed=elapsed>0?(totalBytes/elapsed):0;
+                        const eta=elapsed>0?((segments.length-i-1)*(elapsed/(i+1))):0;
+                        progressFill.style.width=pct+'%';
+                        progressPercent.textContent=pct+'%';
+                        progressSpeed.textContent=formatSize(totalBytes)+' | '+formatSize(Math.round(speed))+'/s | '+Math.round(eta)+'s left';
+                        progressLabel.textContent='Downloading '+(i+1)+'/'+segments.length+' segments...';
+                        await new Promise(r=>setTimeout(r,0));
+                    }catch(segErr){
+                        console.warn('Segment '+i+' failed:',segErr);
+                        try{
+                            const retryResp=await fetch(segments[i]);
+                            if(retryResp.ok){
+                                const buf=await retryResp.arrayBuffer();
+                                chunks.push(new Uint8Array(buf));
+                                totalBytes+=buf.byteLength;
+                            }
+                        }catch(e2){
+                            showToast('Skipped segment '+(i+1),'error');
+                        }
+                    }
+                }
+                progressLabel.textContent='Merging segments...';
+                progressFill.style.width='95%';
+                progressPercent.textContent='95%';
+                await new Promise(r=>setTimeout(r,50));
+                const merged=mergeArrays(chunks);
+                const ext=getTsExt(quality.url);
+                const blob=new Blob([merged],{type:ext==='mp4'?'video/mp4':'video/mp2t'});
+                const url=URL.createObjectURL(blob);
+                const a=document.createElement('a');
+                a.href=url;
+                a.download='MJ_'+quality.resolution.replace('x','p')+'.'+ext;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(()=>URL.revokeObjectURL(url),60000);
+                progressFill.style.width='100%';
+                progressPercent.textContent='100%';
+                progressSpeed.textContent=formatSize(totalBytes)+' total';
+                progressLabel.textContent='Download complete!';
+                showToast('Download complete! '+formatSize(totalBytes),'success');
+                setTimeout(closeQualityModal,2000);
+            }catch(err){
+                progressLabel.textContent='Download failed!';
+                progressFill.style.width='0%';
+                progressPercent.textContent='0%';
+                progressSpeed.textContent='';
+                grid.style.opacity='1';
+                grid.style.pointerEvents='auto';
+                showToast('Download failed: '+err.message,'error');
+            }
+        }
+
+        function parseSegments(m3u8,baseUrl){
+            const lines=m3u8.split('\n').map(l=>l.trim());
+            const segs=[];
+            const baseDir=baseUrl.substring(0,baseUrl.lastIndexOf('/')+1);
+            for(let i=0;i<lines.length;i++){
+                if(lines[i]&&!lines[i].startsWith('#')){
+                    let url=lines[i];
+                    if(!url.startsWith('http')){
+                        url=baseDir+url;
+                    }
+                    segs.push(url);
+                }
+            }
+            return segs;
+        }
+
+        function mergeArrays(arrays){
+            let totalLen=0;
+            for(const a of arrays)totalLen+=a.length;
+            const result=new Uint8Array(totalLen);
+            let offset=0;
+            for(const a of arrays){
+                result.set(a,offset);
+                offset+=a.length;
+            }
+            return result;
+        }
+
+        function getTsExt(url){
+            if(url.includes('.mp4'))return 'mp4';
+            if(url.includes('.ts'))return 'ts';
+            return 'ts';
+        }
+
+        function setupSecurity(){
+            document.addEventListener('keydown',function(e){
+                if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&(e.key==='I'||e.key==='i'||e.key==='J'||e.key==='j'||e.key==='C'||e.key==='c'))){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            });
+            document.addEventListener('contextmenu',function(e){
+                e.preventDefault();
+                return false;
+            });
+            document.addEventListener('selectstart',function(e){
+                if(e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){
+                    e.preventDefault();
+                }
+            });
+            document.addEventListener('dragstart',function(e){
+                e.preventDefault();
+            });
+        }
+
+        async function initPlayer(){
+            hideError();
+            setLoading(true,'Initializing player...');
+            if(hlsInstance){
+                hlsInstance.destroy();
+                hlsInstance=null;
+            }
+            qualities=[];
+            currentQuality=-1;
+            isHls=false;
+            if(!videoUrl){
+                showError('No video URL provided');
+                return;
+            }
+            if(videoUrl.includes('.m3u8')||videoUrl.includes('/master.')){
+                isHls=true;
+                await loadHlsStream(videoUrl);
+            }else{
+                await loadDirectVideo(videoUrl);
+            }
+        }
+
+        document.getElementById('qualityModal').addEventListener('click',function(e){
+            if(e.target===this)closeQualityModal();
+        });
+
+        document.addEventListener('keydown',function(e){
+            if(e.key==='Escape')closeQualityModal();
+        });
+
+        setupSecurity();
+        window.initPlayer=initPlayer;
+        window.closeQualityModal=closeQualityModal;
+        window.openQualityModal=openQualityModal;
+
+        if(videoUrl){
+            initPlayer();
+        }else{
+            showError('No video URL provided. Navigate from a course page to play videos.');
+        }
+    })();
+    </script>
+<style id="protect-guard">body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}input,textarea{user-select:text}img{-webkit-user-drag:none;pointer-events:none}</style><script>(function(){var s=function(e){e.preventDefault();return false};["contextmenu","copy","cut","dragstart","selectstart"].forEach(function(t){document.addEventListener(t,s)});document.addEventListener("keydown",function(e){var k=(e.key||"").toLowerCase();if(e.key==="F12")return s(e);if((e.ctrlKey||e.metaKey)&&e.shiftKey&&["i","j","c"].indexOf(k)>-1)return s(e);if((e.ctrlKey||e.metaKey)&&["u","s","c","x","a","p"].indexOf(k)>-1)return s(e)})})();</script>
+</body>
+</html>
